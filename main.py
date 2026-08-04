@@ -51,13 +51,8 @@ def get_embed_color(role_name: str) -> int:
 async def process_roles_updating(guild: discord.Guild):
     channel = bot.get_channel(LOG_CHANNEL_ID)
     
-    # ПРИНУДИТЕЛЬНО заставляем бота скачать полный список людей с сервера
-    try:
-        await guild.chunk() 
-    except Exception:
-        pass
-
-    for member in guild.members:
+    # Безопасно выкачиваем участников напрямую через API без использования chunk()
+    async for member in guild.fetch_members(limit=None):
         if member.bot:
             continue
 
@@ -100,7 +95,7 @@ async def process_roles_updating(guild: discord.Guild):
                         await channel.send(embed=embed)
                         
                 except discord.Forbidden:
-                    print(f"[КРИТИЧЕСКАЯ ОШИБКА] Бот не может выдать роль! Перетащите роль бота в настройках сервера ВЫШЕ ролей времени!")
+                    print(f"[ОШИБКА] Перетащите роль бота Wild Time в настройках сервера ВЫШЕ ролей времени!")
 
 @bot.event
 async def on_ready():
