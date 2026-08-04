@@ -124,5 +124,13 @@ async def sync_roles(ctx):
 async def sync_roles_error(ctx, error):
     if isinstance(error, commands.MissingPermissions):
         await ctx.send("❌ У вас нет прав Администратора для использования этой команды.")
+# Проверьте, что выше нет лишних пустых отступов перед декораторами
 
-bot.run("MTUzMTIwNjY4OTY2MTkxNTI1OA.GHJnI7.K8rKqZ3hjGGXX-iKVyZkrWKua4rhCUD-SgXeTI")
+# Безопасный запуск через переменные окружения Bothost
+import os
+token = os.getenv("BOT_TOKEN")
+
+if token:
+    bot.run(token)
+else:
+    print("Ошибка: Переменная BOT_TOKEN не настроена в панели Bothost!")
