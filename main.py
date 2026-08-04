@@ -125,4 +125,4 @@ async def sync_roles_error(ctx, error):
     if isinstance(error, commands.MissingPermissions):
         await ctx.send("❌ У вас нет прав Администратора для использования этой команды.")
 
-bot.run("ВАШ_ТОКЕН_БОТА")
+bot.run("MTUzMTE4MzEwNzM0Mjk5NTQ2Nw.GFADvf.aaXu0uQDxQi13L_48y_G8BYjCRm_K2HwqafBXQ")
