@@ -51,6 +51,12 @@ def get_embed_color(role_name: str) -> int:
 async def process_roles_updating(guild: discord.Guild):
     channel = bot.get_channel(LOG_CHANNEL_ID)
     
+    # ПРИНУДИТЕЛЬНО заставляем бота скачать полный список людей с сервера
+    try:
+        await guild.chunk() 
+    except Exception:
+        pass
+
     for member in guild.members:
         if member.bot:
             continue
@@ -61,7 +67,6 @@ async def process_roles_updating(guild: discord.Guild):
             
         days_on_server = (now - member.joined_at).days
 
-        # Вычисляем ОДНУ самую высокую роль, которая должна быть у человека по его стажу
         target_role_name = None
         for days_required, role_name in ROLES_CONFIG.items():
             if days_on_server >= days_required:
@@ -71,21 +76,16 @@ async def process_roles_updating(guild: discord.Guild):
         if target_role_name:
             target_role = discord.utils.get(guild.roles, name=target_role_name)
             
-            # Если нужная роль есть на сервере, но у человека в профиле её ЕЩЕ НЕТ
             if target_role and target_role not in member.roles:
                 try:
-                    # 1. Находим, какие СТАРЫЕ роли времени сейчас висят на человеке
                     old_time_roles = [r for r in member.roles if r.name in ALL_TIME_ROLE_NAMES and r.name != target_role_name]
                     
-                    # 2. Если у него есть старые роли времени, СНИМАЕМ их с профиля
                     if old_time_roles:
                         await member.remove_roles(*old_time_roles)
                     
-                    # 3. ВЫДАЕМ новую актуальную роль времени
                     await member.add_roles(target_role)
                     print(f"[ПОВЫШЕНИЕ] Участник {member.name} переведен на роль: {target_role_name}")
                     
-                    # 4. Отправляем красивое сообщение в текстовый лог-канал
                     if channel:
                         embed = discord.Embed(
                             title="🎉 Обновление статуса времени!",
@@ -100,7 +100,7 @@ async def process_roles_updating(guild: discord.Guild):
                         await channel.send(embed=embed)
                         
                 except discord.Forbidden:
-                    print(f"[ОШИБКА] Не удалось обновить роли для {member.name}. Убедитесь, что роль бота находится ВЫШЕ ролей времени в настройках сервера!")
+                    print(f"[КРИТИЧЕСКАЯ ОШИБКА] Бот не может выдать роль! Перетащите роль бота в настройках сервера ВЫШЕ ролей времени!")
 
 @bot.event
 async def on_ready():
