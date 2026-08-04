@@ -3,7 +3,8 @@ from discord.ext import commands, tasks
 from datetime import datetime, timezone
 import os
 
-intents = discord.Intents.default()
+# Строго включаем все намерения
+intents = discord.Intents.all()
 intents.members = True
 intents.message_content = True 
 
@@ -33,9 +34,9 @@ ROLES_CONFIG = {
     7: ("Неделя на сервере", 0xb0c3d9)              # Серый
 }
 
-ALL_TIME_ROLE_NAMES = set(data[0] for data in ROLES_CONFIG.values())
+# ИСПРАВЛЕНО: Теперь здесь собираются строго только текстовые названия ролей
+ALL_TIME_ROLE_NAMES = set(item[0] for item in ROLES_CONFIG.values())
 
-# Функция, которая САМА создает роль на сервере и включает выделение отдельно (hoist=True)
 async def get_or_create_role(guild: discord.Guild, role_name: str, color_hex: int) -> discord.Role:
     role = discord.utils.get(guild.roles, name=role_name)
     if not role:
@@ -43,21 +44,25 @@ async def get_or_create_role(guild: discord.Guild, role_name: str, color_hex: in
             role = await guild.create_role(
                 name=role_name, 
                 color=discord.Color(color_hex),
-                hoist=True,  # <-- ЭТОТ ПАРАМЕТР И ВЫДЕЛЯЕТ РОЛЬ ОТДЕЛЬНО В СПИСКЕ СПРАВА
+                hoist=True,  # Отображать отдельно в списке участников
                 reason="Автоматическое создание сетки ролей времени"
             )
-            print(f"[СЕРВЕР] Бот сам создал выделенную роль: {role_name}")
+            print(f"[СЕРВЕР] Бот создал роль: {role_name}")
         except discord.Forbidden:
-            print(f"[ОШИБКА] Не хватает прав для создания роли {role_name}!")
+            print(f"[ОШИБКА ПРАВ] Не хватает прав для создания роли {role_name}!")
     return role
 
 async def process_roles_updating(guild: discord.Guild):
     channel = bot.get_channel(LOG_CHANNEL_ID)
     
+    # Считаем участников для отладки
+    members_count = 0
+    
     async for member in guild.fetch_members(limit=None):
         if member.bot:
             continue
-
+            
+        members_count += 1
         now = datetime.now(timezone.utc)
         if not member.joined_at:
             continue
@@ -84,7 +89,7 @@ async def process_roles_updating(guild: discord.Guild):
                         await member.remove_roles(*old_time_roles)
                     
                     await member.add_roles(target_role)
-                    print(f"[УСПЕХ] Выдана роль {target_role_name} для {member.name}")
+                    print(f"[ВЫДАЧА] Успешно выдана роль {target_role_name} для {member.name}")
                     
                     if channel:
                         embed = discord.Embed(
@@ -100,11 +105,13 @@ async def process_roles_updating(guild: discord.Guild):
                         await channel.send(embed=embed)
                         
                 except discord.Forbidden:
-                    print(f"[КРИТИЧЕСКАЯ ОШИБКА] Перетащите роль бота Wild Time на самый верх в настройках сервера Дискорда!")
+                    print(f"[КРИТИЧЕСКАЯ ОШИБКА] Перетащите роль бота Wild Time на самый верх списка ролей в Discord!")
+                    
+    print(f"[ЛОГ] Проверка завершена. Успешно обработано участников: {members_count}")
 
 @bot.event
 async def on_ready():
-    print(f"Бот {bot.user.name} запущен! Полная автоматизация ролей активна.")
+    print(f"Бот {bot.user.name} успешно запущен! Система автосоздания и выдачи активна.")
     check_server_roles.start()
 
 @tasks.loop(minutes=30)
@@ -115,9 +122,9 @@ async def check_server_roles():
 @bot.command(name="sync_roles")
 @commands.has_permissions(administrator=True) 
 async def sync_roles(ctx):
-    await ctx.send("🔄 Запущена проверка. Бот самостоятельно создаст недостающие выделенные роли на сервере и распределит их участников...")
+    await ctx.send("🔄 Запущена проверка. Бот проверяет участников и создаёт недостающие роли...")
     await process_roles_updating(ctx.guild)
-    await ctx.send("✅ Все выделенные роли успешно сгенерированы и выданы олдфагам сервера!")
+    await ctx.send("✅ Все роли успешно проверены и обновлены!")
 
 @sync_roles.error
 async def sync_roles_error(ctx, error):
