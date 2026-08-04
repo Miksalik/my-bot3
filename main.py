@@ -10,7 +10,7 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # НАСТРОЙКА: Вставьте сюда ID вашего текстового канала для уведомлений
-LOG_CHANNEL_ID = 123456789012345678  
+LOG_CHANNEL_ID = 1534155761608032336  
 
 # Полная конфигурация: Дни на сервере -> (Название роли, HEX-цвет)
 ROLES_CONFIG = {
