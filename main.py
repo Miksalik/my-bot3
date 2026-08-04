@@ -1,4 +1,5 @@
 import discord
+import os
 from discord.ext import commands, tasks
 from datetime import datetime, timezone
 
@@ -127,7 +128,6 @@ async def sync_roles_error(ctx, error):
 # Проверьте, что выше нет лишних пустых отступов перед декораторами
 
 # Безопасный запуск через переменные окружения Bothost
-import os
 token = os.getenv("BOT_TOKEN")
 
 if token:
