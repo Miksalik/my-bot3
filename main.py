@@ -3,7 +3,6 @@ from discord.ext import commands, tasks
 from datetime import datetime, timezone
 import os
 
-# Строго включаем все намерения
 intents = discord.Intents.all()
 intents.members = True
 intents.message_content = True 
@@ -34,28 +33,28 @@ ROLES_CONFIG = {
     7: ("Неделя на сервере", 0xb0c3d9)              # Серый
 }
 
-# ИСПРАВЛЕНО: Теперь здесь собираются строго только текстовые названия ролей
-ALL_TIME_ROLE_NAMES = set(item[0] for item in ROLES_CONFIG.values())
+# ИСПРАВЛЕНО: Теперь здесь собираются ТОЛЬКО чистые текстовые названия ролей
+ALL_TIME_ROLE_NAMES = set(role_data[0] for role_data in ROLES_CONFIG.values())
 
+# Функция, которая САМА создаёт роль на сервере, если её там нет
 async def get_or_create_role(guild: discord.Guild, role_name: str, color_hex: int) -> discord.Role:
     role = discord.utils.get(guild.roles, name=role_name)
     if not role:
         try:
+            # Создаём роль с параметром hoist=True (выделение в списке справа)
             role = await guild.create_role(
                 name=role_name, 
                 color=discord.Color(color_hex),
-                hoist=True,  # Отображать отдельно в списке участников
+                hoist=True,  
                 reason="Автоматическое создание сетки ролей времени"
             )
-            print(f"[СЕРВЕР] Бот создал роль: {role_name}")
+            print(f"[СЕРВЕР] Бот успешно создал роль: {role_name}")
         except discord.Forbidden:
-            print(f"[ОШИБКА ПРАВ] Не хватает прав для создания роли {role_name}!")
+            print(f"[ОШИБКА ПРАВ] У бота нет прав на управление ролями для создания {role_name}!")
     return role
 
 async def process_roles_updating(guild: discord.Guild):
     channel = bot.get_channel(LOG_CHANNEL_ID)
-    
-    # Считаем участников для отладки
     members_count = 0
     
     async for member in guild.fetch_members(limit=None):
@@ -72,6 +71,7 @@ async def process_roles_updating(guild: discord.Guild):
         target_role_name = None
         target_color = None
         
+        # Определяем нужную роль
         for days_required, (role_name, color_hex) in ROLES_CONFIG.items():
             if days_on_server >= days_required:
                 target_role_name = role_name
@@ -79,15 +79,18 @@ async def process_roles_updating(guild: discord.Guild):
                 break 
 
         if target_role_name:
+            # Бот проверяет / создаёт нужную роль на сервере
             target_role = await get_or_create_role(guild, target_role_name, target_color)
             
             if target_role and target_role not in member.roles:
                 try:
+                    # Находим и удаляем старые временные роли из профиля участника
                     old_time_roles = [r for r in member.roles if r.name in ALL_TIME_ROLE_NAMES and r.name != target_role_name]
                     
                     if old_time_roles:
                         await member.remove_roles(*old_time_roles)
                     
+                    # Выдаем новую актуальную роль времени
                     await member.add_roles(target_role)
                     print(f"[ВЫДАЧА] Успешно выдана роль {target_role_name} для {member.name}")
                     
@@ -107,7 +110,7 @@ async def process_roles_updating(guild: discord.Guild):
                 except discord.Forbidden:
                     print(f"[КРИТИЧЕСКАЯ ОШИБКА] Перетащите роль бота Wild Time на самый верх списка ролей в Discord!")
                     
-    print(f"[ЛОГ] Проверка завершена. Успешно обработано участников: {members_count}")
+    print(f"[ЛОГ] Проверка завершена. Обработано участников: {members_count}")
 
 @bot.event
 async def on_ready():
